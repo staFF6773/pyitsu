@@ -15,7 +15,7 @@ def main():
     window = MainWindow()
     
     # Use a timer to show the main window after a delay
-    QTimer.singleShot(2000, lambda: (
+    QTimer.singleShot(4000, lambda: (
         window.show(),
         splash.close()
     ))
