@@ -492,7 +492,7 @@ class MainWindow(QMainWindow):
             self.content_layout.addWidget(details_view)
         else:
             # If we can't get complete details, show a message
-            error_label = QLabel("No se pudieron cargar los detalles del anime")
+            error_label = QLabel("Anime details could not be loaded")
             error_label.setStyleSheet("""
                 QLabel {
                     color: white;
