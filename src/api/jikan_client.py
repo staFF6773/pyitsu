@@ -1,26 +1,49 @@
 import requests
+from typing import List, Dict, Optional
 
 class JikanClient:
     BASE_URL = "https://kitsu.io/api/edge"
+    DEFAULT_PAGE_LIMIT = 20
+    MAX_PAGE_LIMIT = 20
     
+    def __init__(self):
+        self.headers = {
+            'Accept': 'application/vnd.api+json',
+            'Content-Type': 'application/vnd.api+json'
+        }
+
+    def _process_anime_data(self, anime_data: dict) -> dict:
+        """Helper method to process anime data into a consistent format."""
+        attributes = anime_data.get("attributes", {})
+        return {
+            "id": anime_data.get("id"),
+            "title": attributes.get("canonicalTitle", "Unknown Title"),
+            "image_url": attributes.get("posterImage", {}).get("original", ""),
+            "score": attributes.get("averageRating", "N/A"),
+            "synopsis": attributes.get("synopsis", "No synopsis available"),
+            "episodes": attributes.get("episodeCount", "N/A"),
+            "status": attributes.get("status", "Unknown"),
+            "aired": f"{attributes.get('startDate', 'Unknown')} to {attributes.get('endDate', 'Unknown')}"
+        }
+
     def get_top_anime(self):
+        """Get top anime list."""
         try:
-            headers = {
-                'Accept': 'application/vnd.api+json',
-                'Content-Type': 'application/vnd.api+json'
-            }
-            
             response = requests.get(
                 f"{self.BASE_URL}/anime", 
                 params={
                     "sort": "-averageRating",
-                    "page[limit]": 9
+                    "page[limit]": 20
                 },
-                headers=headers
+                headers=self.headers
             )
             response.raise_for_status()
             data = response.json()
             
+            if not data.get("data"):
+                print(f"No data in response: {data}")
+                return []
+                
             results = []
             for anime in data.get("data", []):
                 attributes = anime.get("attributes", {})
@@ -38,27 +61,34 @@ class JikanClient:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching top anime: {e}")
             return []
-    
+
     def search_anime(self, query):
+        """Search for anime."""
         try:
             if not query or query.strip() == "":
                 return []
             
-            headers = {
-                'Accept': 'application/vnd.api+json',
-                'Content-Type': 'application/vnd.api+json'
-            }
+            print(f"Searching for: {query}")  # Debug print
             
             response = requests.get(
                 f"{self.BASE_URL}/anime", 
                 params={
                     "filter[text]": query,
-                    "page[limit]": 9
+                    "page[limit]": 20
                 },
-                headers=headers
+                headers=self.headers
             )
+            
+            # Debug prints
+            print(f"Response status: {response.status_code}")
+            print(f"Response URL: {response.url}")
+            
             response.raise_for_status()
             data = response.json()
+            
+            if not data.get("data"):
+                print(f"No data in response: {data}")
+                return []
             
             results = []
             for anime in data.get("data", []):
@@ -73,7 +103,10 @@ class JikanClient:
                     "status": attributes.get("status", "Unknown"),
                     "aired": f"{attributes.get('startDate', 'Unknown')} to {attributes.get('endDate', 'Unknown')}"
                 })
+            
+            print(f"Found {len(results)} results")  # Debug print
             return results
+            
         except requests.exceptions.RequestException as e:
             print(f"Error fetching anime data: {e}")
             return []
@@ -81,19 +114,15 @@ class JikanClient:
     def get_anime_details(self, anime_id: int) -> dict:
         """Get detailed information about a specific anime."""
         try:
-            headers = {
-                'Accept': 'application/vnd.api+json',
-                'Content-Type': 'application/vnd.api+json'
-            }
-            
             response = requests.get(
                 f"{self.BASE_URL}/anime/{anime_id}",
-                headers=headers
+                headers=self.headers
             )
             response.raise_for_status()
             data = response.json()
             
             if not data.get('data'):
+                print(f"No data found for anime ID: {anime_id}")
                 return None
                 
             anime = data['data']
@@ -133,7 +162,7 @@ class JikanClient:
                 'title_english': attributes.get('titles', {}).get('en'),
                 'title_japanese': attributes.get('titles', {}).get('ja_jp'),
                 'image_url': poster_image.get('original'),
-                'cover_url': cover_image.get('original') or poster_image.get('original') or None,  # Fallback to poster image or None
+                'cover_url': cover_image.get('original') or poster_image.get('original') or None,
                 'score': attributes.get('averageRating'),
                 'scored_by': attributes.get('userCount'),
                 'rank': attributes.get('ratingRank'),
@@ -148,13 +177,13 @@ class JikanClient:
                 'status': attributes.get('status'),
                 'aired': f"{attributes.get('startDate')} to {attributes.get('endDate')}",
                 'premiered': attributes.get('startDate'),
-                'broadcast': None,  # Kitsu doesn't provide broadcast info
-                'producers': [],  # Kitsu doesn't provide producers separately
-                'licensors': [],  # Kitsu doesn't provide licensors
+                'broadcast': None,
+                'producers': [],
+                'licensors': [],
                 'studios': studios,
                 'genres': genres,
                 'themes': themes,
-                'demographics': [],  # Kitsu doesn't provide demographics
+                'demographics': [],
                 'duration': attributes.get('episodeLength'),
                 'rating': attributes.get('ageRating'),
                 'trailer_url': attributes.get('youtubeVideoId'),
