@@ -180,7 +180,7 @@ class LoadingOverlay(QWidget):
             }
         """)
         layout = QVBoxLayout(self)
-        label = QLabel("Buscando animes...")
+        label = QLabel("Looking for anime...")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
         self.hide()
@@ -188,7 +188,7 @@ class LoadingOverlay(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AnimeDesk")
+        self.setWindowTitle("Pyitsu ")
         self.setMinimumSize(1400, 900)
         
         # Set window style
@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
         title_layout.setSpacing(0)
         
         # Title
-        title_label = QLabel("AnimeDesk")
+        title_label = QLabel("Pyitsu ")
         title_label.setStyleSheet("""
             QLabel {
                 font-size: 42px;
