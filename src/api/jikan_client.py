@@ -99,9 +99,9 @@ class JikanClient:
             anime = data['data']
             attributes = anime.get('attributes', {})
             
-            # Extract images
-            poster_image = attributes.get('posterImage', {})
-            cover_image = attributes.get('coverImage', {})
+            # Extract images with safe fallbacks
+            poster_image = attributes.get('posterImage') or {}
+            cover_image = attributes.get('coverImage') or {}
             
             # Extract genres
             genres = []
@@ -133,7 +133,7 @@ class JikanClient:
                 'title_english': attributes.get('titles', {}).get('en'),
                 'title_japanese': attributes.get('titles', {}).get('ja_jp'),
                 'image_url': poster_image.get('original'),
-                'cover_url': cover_image.get('original'),
+                'cover_url': cover_image.get('original') or poster_image.get('original') or None,  # Fallback to poster image or None
                 'score': attributes.get('averageRating'),
                 'scored_by': attributes.get('userCount'),
                 'rank': attributes.get('ratingRank'),
