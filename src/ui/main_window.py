@@ -299,7 +299,7 @@ class MainWindow(QMainWindow):
         top_row_layout.addWidget(title_container)
         
         # Back button (initially hidden)
-        self.back_button = QPushButton("← Volver")
+        self.back_button = QPushButton("← Back to")
         self.back_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
