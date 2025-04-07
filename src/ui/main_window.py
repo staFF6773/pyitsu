@@ -1,14 +1,16 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                             QLineEdit, QPushButton, QLabel, QScrollArea,
-                            QFrame, QGridLayout, QSplitter)
-from PySide6.QtCore import Qt, QThread, Signal, QSize
-from PySide6.QtGui import QPixmap, QImage
+                            QFrame, QGridLayout, QSplitter, QDialog, QCheckBox,
+                            QComboBox, QSpinBox, QFormLayout, QMenuBar, QMenu, QStatusBar)
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QPoint
+from PySide6.QtGui import QPixmap, QImage, QIcon
 import requests
 from io import BytesIO
 from PIL import Image
 from api.jikan_client import JikanClient
 import queue
 import threading
+import os
 
 from .components.anime_card import AnimeCard
 from .components.loading_overlay import LoadingOverlay
@@ -185,11 +187,161 @@ class LoadingOverlay(QWidget):
         layout.addWidget(label)
         self.hide()
 
+class ConfigDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Settings")
+        self.setMinimumWidth(500)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #0a0a0a;
+                color: #ffffff;
+            }
+            QLabel {
+                color: #ffffff;
+                font-size: 14px;
+            }
+            QCheckBox {
+                color: #ffffff;
+                font-size: 14px;
+            }
+            QComboBox {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 5px;
+                min-width: 150px;
+            }
+            QComboBox:focus {
+                border: 1px solid #00b4d8;
+            }
+            QSpinBox {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 5px;
+                min-width: 100px;
+            }
+            QSpinBox:focus {
+                border: 1px solid #00b4d8;
+            }
+            QPushButton {
+                background-color: #00b4d8;
+                color: #ffffff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #0096c7;
+            }
+            QPushButton:pressed {
+                background-color: #0077b6;
+            }
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setSpacing(20)
+        
+        # Configuration form
+        form_layout = QFormLayout()
+        form_layout.setSpacing(15)
+        
+        # Option to show score
+        self.show_score = QCheckBox("Show score")
+        self.show_score.setChecked(True)
+        form_layout.addRow("Display:", self.show_score)
+        
+        # Option to show episodes
+        self.show_episodes = QCheckBox("Show episodes")
+        self.show_episodes.setChecked(True)
+        form_layout.addRow("", self.show_episodes)
+        
+        # Option to show status
+        self.show_status = QCheckBox("Show status")
+        self.show_status.setChecked(True)
+        form_layout.addRow("", self.show_status)
+        
+        # Option to sort by
+        self.sort_by = QComboBox()
+        self.sort_by.addItems(["Score", "Title", "Episodes", "Status"])
+        form_layout.addRow("Sort by:", self.sort_by)
+        
+        # Option for cards per row
+        self.cards_per_row = QSpinBox()
+        self.cards_per_row.setRange(1, 6)
+        self.cards_per_row.setValue(4)
+        form_layout.addRow("Cards per row:", self.cards_per_row)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(10)
+        
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(self.accept)
+        buttons_layout.addWidget(save_button)
+        
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        buttons_layout.addWidget(cancel_button)
+        
+        layout.addLayout(buttons_layout)
+
+class FloatingConfigButton(QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(50, 50)
+        
+        # Cargar el icono SVG
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources", "icons", "Setting-icon.svg")
+        self.setIcon(QIcon(icon_path))
+        self.setIconSize(QSize(24, 24))
+        
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #00b4d8;
+                color: white;
+                border: none;
+                border-radius: 25px;
+            }
+            QPushButton:hover {
+                background-color: #0096c7;
+            }
+            QPushButton:pressed {
+                background-color: #0077b6;
+            }
+        """)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.move(self.pos() + QPoint(0, 2))
+        
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.move(self.pos() - QPoint(0, 2))
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Pyitsu ")
+        self.setWindowTitle("Pyitsu")
         self.setMinimumSize(1400, 900)
+        
+        # Default configuration
+        self.config = {
+            "show_score": True,
+            "show_episodes": True,
+            "show_status": True,
+            "sort_by": "Score",
+            "cards_per_row": 4
+        }
         
         # Set window style
         self.setStyleSheet("""
@@ -258,6 +410,20 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(60, 30, 60, 30)
         main_layout.setSpacing(30)
         
+        # Create menu bar
+        self.create_menu_bar()
+        
+        # Create status bar
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #0a0a0a;
+                color: #ffffff;
+                border-top: 1px solid #2a2a2a;
+            }
+        """)
+        
         # Header section
         header = QWidget()
         header.setFixedHeight(140)
@@ -285,7 +451,7 @@ class MainWindow(QMainWindow):
         title_layout.setSpacing(0)
         
         # Title
-        title_label = QLabel("Pyitsu ")
+        title_label = QLabel("Pyitsu")
         title_label.setStyleSheet("""
             QLabel {
                 font-size: 42px;
@@ -299,7 +465,7 @@ class MainWindow(QMainWindow):
         top_row_layout.addWidget(title_container)
         
         # Back button (initially hidden)
-        self.back_button = QPushButton("← Back to")
+        self.back_button = QPushButton("← Back")
         self.back_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
@@ -349,7 +515,7 @@ class MainWindow(QMainWindow):
         
         # Search input
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("loading anime...")
+        self.search_input.setPlaceholderText("Search anime...")
         self.search_input.setStyleSheet("""
             QLineEdit {
                 padding: 15px;
@@ -409,6 +575,11 @@ class MainWindow(QMainWindow):
         self.content_area.setWidget(content_widget)
         main_layout.addWidget(self.content_area)
         
+        # Floating config button
+        self.config_button = FloatingConfigButton(self)
+        self.config_button.clicked.connect(self.show_config)
+        self.config_button.move(self.width() - 70, self.height() - 70)
+        
         # Loading overlay
         self.loading_overlay = LoadingOverlay(self)
         self.loading_overlay.setGeometry(0, 0, self.width(), self.height())
@@ -419,9 +590,46 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.loading_overlay.resize(self.size())
+        # Reposition config button
+        self.config_button.move(self.width() - 70, self.height() - 70)
+    
+    def show_config(self):
+        dialog = ConfigDialog(self)
+        
+        # Establecer valores actuales
+        dialog.show_score.setChecked(self.config["show_score"])
+        dialog.show_episodes.setChecked(self.config["show_episodes"])
+        dialog.show_status.setChecked(self.config["show_status"])
+        dialog.sort_by.setCurrentText(self.config["sort_by"])
+        dialog.cards_per_row.setValue(self.config["cards_per_row"])
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Guardar configuración
+            self.config["show_score"] = dialog.show_score.isChecked()
+            self.config["show_episodes"] = dialog.show_episodes.isChecked()
+            self.config["show_status"] = dialog.show_status.isChecked()
+            self.config["sort_by"] = dialog.sort_by.currentText()
+            self.config["cards_per_row"] = dialog.cards_per_row.value()
+            
+            # Actualizar la vista actual
+            self.refresh_current_view()
+    
+    def refresh_current_view(self):
+        # Si estamos en la vista de detalles, volver a cargar los detalles
+        if self.back_button.isVisible():
+            # Obtener el ID del anime actual
+            for i in range(self.content_layout.count()):
+                widget = self.content_layout.itemAt(i).widget()
+                if hasattr(widget, 'anime_data'):
+                    self.show_anime_details(widget.anime_data)
+                    break
+        else:
+            # Si estamos en la vista principal, volver a cargar los resultados
+            self.search_anime()
     
     def go_home(self):
         self.back_button.hide()
+        self.search_input.clear()
         self.search_anime()
         
     def search_anime(self):
@@ -446,6 +654,16 @@ class MainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
         
+        # Sort results according to configuration
+        if self.config["sort_by"] == "Score":
+            results = sorted(results, key=lambda x: float(x['score']) if x['score'] != 'N/A' else 0, reverse=True)
+        elif self.config["sort_by"] == "Title":
+            results = sorted(results, key=lambda x: x['title'])
+        elif self.config["sort_by"] == "Episodes":
+            results = sorted(results, key=lambda x: int(x['episodes']) if x['episodes'] != '?' else 0)
+        elif self.config["sort_by"] == "Status":
+            results = sorted(results, key=lambda x: x['status'])
+        
         # Create grid layout for anime cards
         grid = QWidget()
         grid_layout = QGridLayout(grid)
@@ -457,13 +675,45 @@ class MainWindow(QMainWindow):
         for anime in results:
             card = AnimeCard(anime, self.image_loader)
             card.clicked.connect(self.show_anime_details)
+            
+            # Apply display configuration
+            if not self.config["show_score"]:
+                for i in range(card.layout().count()):
+                    widget = card.layout().itemAt(i).widget()
+                    if isinstance(widget, QFrame) and widget.layout():
+                        for j in range(widget.layout().count()):
+                            child = widget.layout().itemAt(j).widget()
+                            if isinstance(child, QLabel) and "★" in child.text():
+                                child.hide()
+            
+            if not self.config["show_episodes"]:
+                for i in range(card.layout().count()):
+                    widget = card.layout().itemAt(i).widget()
+                    if isinstance(widget, QFrame) and widget.layout():
+                        for j in range(widget.layout().count()):
+                            child = widget.layout().itemAt(j).widget()
+                            if isinstance(child, QLabel) and "Episodes:" in child.text():
+                                child.hide()
+            
+            if not self.config["show_status"]:
+                for i in range(card.layout().count()):
+                    widget = card.layout().itemAt(i).widget()
+                    if isinstance(widget, QFrame) and widget.layout():
+                        for j in range(widget.layout().count()):
+                            child = widget.layout().itemAt(j).widget()
+                            if isinstance(child, QLabel) and "Status:" in child.text():
+                                child.hide()
+            
             grid_layout.addWidget(card, row, col)
             col += 1
-            if col > 3:  # 4 cards per row
+            if col >= self.config["cards_per_row"]:
                 col = 0
                 row += 1
         
         self.content_layout.addWidget(grid)
+        
+        # Update status bar
+        self.status_bar.showMessage(f"Found {len(results)} results")
         
         # Hide loading overlay
         self.loading_overlay.hide()
@@ -508,4 +758,32 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.image_loader.stop()
         self.image_loader.wait()
-        super().closeEvent(event) 
+        super().closeEvent(event)
+
+    def create_menu_bar(self):
+        menubar = self.menuBar()
+        menubar.setStyleSheet("""
+            QMenuBar {
+                background-color: #0a0a0a;
+                color: #ffffff;
+                border-bottom: 1px solid #2a2a2a;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 8px 12px;
+            }
+            QMenuBar::item:selected {
+                background-color: #2a2a2a;
+            }
+            QMenu {
+                background-color: #0a0a0a;
+                color: #ffffff;
+                border: 1px solid #2a2a2a;
+            }
+            QMenu::item {
+                padding: 8px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #2a2a2a;
+            }
+        """)
