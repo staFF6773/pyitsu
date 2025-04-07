@@ -6,14 +6,14 @@ from .error_handler import ErrorHandler
 class SearchThread(QThread):
     results_ready = Signal(list)
     
-    def __init__(self, query, parent: QWidget = None):
-        super().__init__()
+    def __init__(self, query, parent=None, page_limit=20):
+        super().__init__(parent)
         self.query = query
-        self.parent = parent
+        self.page_limit = page_limit
         
     def run(self):
         try:
-            client = JikanClient()
+            client = JikanClient(page_limit=self.page_limit)
             if self.query == "":
                 results = client.get_top_anime()
             else:
