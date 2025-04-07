@@ -1,3 +1,4 @@
+import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, 
                               QProgressBar, QFrame)
 from PySide6.QtCore import Qt, QTimer
@@ -23,13 +24,18 @@ class SplashScreen(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
-        # Add logo placeholder
+        # Add logo
         self.logo_label = QLabel()
-        # TODO: Replace with your actual logo
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "resources", "icons", "AppIcon.jpg")
+        logo_pixmap = QPixmap(logo_path)
+        if logo_pixmap.isNull():
+            print(f"Error: Unable to load image from: {logo_path}")
+        scaled_pixmap = logo_pixmap.scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        self.logo_label.setPixmap(scaled_pixmap)
         self.logo_label.setFixedSize(120, 120)
         self.logo_label.setStyleSheet("""
             QLabel {
-                background-color: rgba(255, 255, 255, 0.1);
+                background-color: transparent;
                 border-radius: 60px;
             }
         """)
@@ -121,6 +127,6 @@ class SplashScreen(QWidget):
         painter.drawRoundedRect(self.rect(), 20, 20)
         
         # Draw subtle border
-        painter.setPen(QColor(255, 255, 255, 30))
+        painter.setPen(QColor(255, 255, 255, 30))   
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 20, 20) 
