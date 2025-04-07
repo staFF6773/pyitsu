@@ -6,11 +6,12 @@ class JikanClient:
     DEFAULT_PAGE_LIMIT = 20
     MAX_PAGE_LIMIT = 20
     
-    def __init__(self):
+    def __init__(self, page_limit=None):
         self.headers = {
             'Accept': 'application/vnd.api+json',
             'Content-Type': 'application/vnd.api+json'
         }
+        self.page_limit = min(page_limit or self.DEFAULT_PAGE_LIMIT, self.MAX_PAGE_LIMIT)
 
     def _process_anime_data(self, anime_data: dict) -> dict:
         """Helper method to process anime data into a consistent format."""
@@ -33,7 +34,7 @@ class JikanClient:
                 f"{self.BASE_URL}/anime", 
                 params={
                     "sort": "-averageRating",
-                    "page[limit]": 20
+                    "page[limit]": self.page_limit
                 },
                 headers=self.headers
             )
@@ -74,7 +75,7 @@ class JikanClient:
                 f"{self.BASE_URL}/anime", 
                 params={
                     "filter[text]": query,
-                    "page[limit]": 20
+                    "page[limit]": self.page_limit
                 },
                 headers=self.headers
             )
