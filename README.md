@@ -30,16 +30,19 @@ python src/main.py
 ```
 pyitsu/
 ├── src/
-│   ├── main.py              # Application entry point
-│   ├── ui/                  # User interface components
-│   │   ├── main_window.py   # Main window implementation
-│   │   └── styles.py        # UI styling definitions
-│   ├── api/                 # API integration
-│   │   └── jikan_client.py  # kitsu API client
-│   └── models/              # Data models
-│       └── anime.py         # Anime data model
-├── requirements.txt         # Project dependencies
-└── README.md               # Project documentation
+│ ├── main.py # Application entry point
+│ ├── ui/ # User interface components
+│ │ ├── main_window.py # Main window implementation
+│ │ └── components/ # UI components
+│ ├── api/ # API integration
+│ │ └── jikan_client.py # Jikan API client for MyAnimeList
+│ ├── models/ # Data models
+│ │ └── anime.py # Anime data model
+│ └── resources/ # Application resources
+│ ├── icons/ # Application icons
+│ └── fonts/ # Custom fonts
+├── requirements.txt # Project dependencies
+└── README.md # Project documentation
 ```
 
 ## Contributing
