@@ -35,7 +35,7 @@ pyitsu/
 │ │ ├── main_window.py # Main window implementation
 │ │ └── components/ # UI components
 │ ├── api/ # API integration
-│ │ └── jikan_client.py # Jikan API client for MyAnimeList
+│ │ └── jikan_client.py # Jikan API client for kitsu.io
 │ ├── models/ # Data models
 │ │ └── anime.py # Anime data model
 │ └── resources/ # Application resources
